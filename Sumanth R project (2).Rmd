@@ -1,0 +1,175 @@
+---
+title: "Project"
+author: "Sumanth Paupuleti"
+date: "2024-03-12"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#The dataset contains information about Connecticut Real Estate Sales Data, 
+#including their typeSerial Number
+```{r , echo=F , message=F,warning=F}
+library(tidyverse)
+library(dplyr)
+library(tidyselect)
+library(ggplot2)
+
+
+#Data
+sales_data <- read_csv(("C:\\Users\\srees\\Downloads\\sales_data.csv"))
+```
+
+QUESTION 1
+To calculate the total number of sales
+```{r , echo=F , message=F,warning=F}
+total_sales<-sum(sales_data$`Sale Amount`)
+total_sales
+barplot(height = sales_data$`Sale Amount`,
+        names.arg = rownames(sales_data),
+        main = "total sales",
+        xlab = "Category",
+        ylab = "Sale Amount",
+        col = "skyblue",
+        ylim = c(0, max(sales_data$`Sale Amount`) * 1.1))
+```
+
+What are the top 5 towns with the highest total assessed value?
+```{r , echo=F , message=F,warning=F}
+Assesed_values <-sales_data %>% group_by(Town) %>% summarise(`Total Assessed Value`= sum(`Assessed Value`))
+top_5<- Assesed_values %>% arrange(desc(`Total Assessed Value`)) %>% head(5)
+ggplot(top_5, aes(x = reorder(Town, `Total Assessed Value`), y = `Total Assessed Value`)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Top 5 Towns with Highest Total Assessed Value",
+       x = "Town",
+       y = "Total Assessed Value") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = scales::comma(`Total Assessed Value`)), vjust = -0.3) 
+```
+QUESTION 3
+identifying key trends in property values across Connecticut
+```{r , echo=F , message=F,warning=F}
+avg_sale_price_by_year <- sales_data %>%
+  group_by(`List Year`) %>%
+  summarize(mean_sale_price = mean(`Sale Amount`))
+avg_sale_price_by_year
+
+ggplot(avg_sale_price_by_year, aes(x = `List Year`, y = mean_sale_price)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  labs(title = "Average Sale Price by Year",
+       x = "Year",
+       y = "Average Sale Price") +
+  theme_minimal()
+```
+3.1Calculate average sale price by property type
+```{r , echo=F , message=F,warning=F}
+avg_sale_price_by_property_type <- sales_data %>%
+  group_by(`Property Type`) %>%
+  summarize(mean_sale_price = mean(`Sale Amount`))
+avg_sale_price_by_property_type
+
+ggplot(avg_sale_price_by_property_type, aes(x = `Property Type`, y = mean_sale_price)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  labs(title = "Average Sale Price by Property Type",
+       x = "Property Type",
+       y = "Average Sale Price") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+QUESTION 4
+Assess the relationship between assessed value and sale amount
+```{r , echo=F , message=F,warning=F}
+model_1 <- lm(`Sale Amount` ~ `Assessed Value`, data = sales_data)
+model_1
+ggplot(sales_data, aes(x = `Assessed Value`, y = `Sale Amount`)) +
+  geom_point() +  # Plot the points
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE) +  # Add a linear regression line
+  labs(title = "Relationship between Assessed Value and Sale Amount",
+       x = "Assessed Value",
+       y = "Sale Amount") +
+  theme_minimal()
+```
+QUESTION 5
+Explore the distribution of property types and their impact on values.
+grouped_data_stats <- sales_data %>%
+  group_by(`Property Type`, `Town`, `List Year`) %>%
+  summarize(
+    n = n(),
+    mean_sale = mean(`Sale Amount`),
+    median_sale = median(`Sale Amount`),
+    min_sale = min(`Sale Amount`),
+    max_sale = max(`Sale Amount`),
+    sd_sale = sd(`Sale Amount`)
+  )
+
+```{r , echo=F , message=F,warning=F}
+ggplot(sales_data, aes(x = `Sale Amount`, fill = `Property Type`)) +
+  geom_histogram(binwidth = 50000, position = "identity", alpha = 0.7) +
+  labs(title = "Distribution of Sale Amounts by Property Type",
+       x = "Sale Amount",
+       y = "Frequency") +
+  theme_minimal() +
+  facet_wrap(~`Property Type`, scales = "free_y")  # Separate facets for each property type
+```
+
+
+selected_property_type_1 <- "Residential"
+property_types_1 <- sales_data[sales_data$`Property Type` == selected_property_type_1, ]
+
+
+
+```{r , echo=F , message=F,warning=F}
+selected_property_type_1 <- "Residential"
+property_types_1 <- sales_data[sales_data$`Property Type` == selected_property_type_1,]
+ggplot(property_types_1, aes(x = factor(`Property Type`), y = `Sale Amount`)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = paste("Boxplot of Sale Amounts for", selected_property_type_1),
+       x = "Property Type",
+       y = "Sale Amount") +
+  theme_minimal()
+```
+QUESTION 6
+Investigate factors influencing property values, including location, amenities, property type, and market conditions.
+6.1 Average Sale Price by Year and Property Type
+```{r , echo=F , message=F,warning=F}
+grouped_data_stats <- sales_data %>%
+  group_by(`Property Type`, `Town`, `List Year`) %>%
+  summarize(
+    n = n(),
+    mean_sale = mean(`Sale Amount`),
+    median_sale = median(`Sale Amount`),
+    min_sale = min(`Sale Amount`),
+    max_sale = max(`Sale Amount`),
+    sd_sale = sd(`Sale Amount`)
+  )
+ggplot(grouped_data_stats, aes(x = `List Year`, y = mean_sale, color = `Property Type`)) +
+  geom_line() +
+  labs(title = "Average Sale Price by Year and Property Type", x = "Year", y = "Average Sale Price", color = "Property Type")
+```
+
+6.2 average sale price by town for different property types
+```{r , echo=F , message=F,warning=F}
+ggplot(grouped_data_stats, aes(x = Town, y = mean_sale, fill = `Property Type`)) +
+  geom_violin()+
+  labs(title = "Average Sale Price by Town and Property Type", x = "Town", y = "Average Sale Price", fill = "Property Type")
+```
+
+
+QUESTION 7
+The  properties with assessed value is more than the  sale value
+
+```{r , echo=F , message=F,warning=F}
+properties_with_higher_assessed_value <- sales_data[sales_data$`Assessed Value` > sales_data$`Sale Amount`, ]
+head(properties_with_higher_assessed_value)
+barplot(height = properties_with_higher_assessed_value$`Assessed Value` - properties_with_higher_assessed_value$`Sale Amount`,
+        names.arg = properties_with_higher_assessed_value$PropertyID,
+        xlab = "Property ID",
+        ylab = "Difference (Assessed Value - Sale Value)",
+        main = "Difference between Assessed Value and Sale Value for Properties with Higher Assessed Value")
+```
+
+
+
+
